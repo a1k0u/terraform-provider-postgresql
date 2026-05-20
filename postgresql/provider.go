@@ -31,7 +31,7 @@ const (
 	defaultAutoIdleTimeSec                = 30
 	defaultExpectedPostgreSQLVersion      = "9.0.0"
 	defaultInstanceLockWaitLogInterval    = 30
-	defaultInstanceLockTimeout            = 0
+	defaultInstanceLockTimeout            = 15 * 60 // 15 minutes
 	defaultInstanceLockDir                = "/tmp/terraform-postgres-provider"
 	defaultLockGrants                     = false
 )
@@ -266,8 +266,9 @@ func Provider() *schema.Provider {
 				Type:         schema.TypeInt,
 				Optional:     true,
 				Default:      defaultInstanceLockTimeout,
-				Description:  "Maximum seconds to wait for the instance lock. Zero means wait indefinitely.",
+				Description:  "Maximum seconds to wait for the instance lock. Defaults to 900 (15 minutes). Set to 0 to wait indefinitely.",
 				ValidateFunc: validation.IntAtLeast(0),
+			},
 			"lock_grants": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -483,7 +484,7 @@ func providerConfigure(d *schema.ResourceData) (any, error) {
 		InstanceLockDir:                 d.Get("instance_lock_dir").(string),
 		InstanceLockWaitLogInterval:     d.Get("instance_lock_wait_log_interval").(int),
 		InstanceLockTimeout:             d.Get("instance_lock_timeout").(int),
-    LockGrants:                      d.Get("lock_grants").(bool),
+		LockGrants:                      d.Get("lock_grants").(bool),
 	}
 
 	if config.InstanceLock && config.InstanceName == "" {

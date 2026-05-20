@@ -46,6 +46,11 @@ func TestAcquireRunInstanceLock_DedupesSameProcess(t *testing.T) {
 
 	_, ok := instanceLockSlots.Load("test-dedupe")
 	require.True(t, ok)
+
+	lockFilePath := filepath.Join(dir, "test-dedupe.lock")
+	if _, err := os.Stat(lockFilePath); os.IsNotExist(err) {
+		t.Fatalf("expected lock file to exist at %q", lockFilePath)
+	}
 }
 
 func TestAcquireRunInstanceLock_CrossProcessBlocks(t *testing.T) {
@@ -149,6 +154,12 @@ func TestHelperHoldInstanceLock(t *testing.T) {
 	require.NoError(t, acquireRunInstanceLock(context.Background(), cfg))
 
 	readyPath := filepath.Join(dir, name+".ready")
-	require.NoError(t, os.WriteFile(readyPath, []byte(strconv.Itoa(os.Getpid())), 0o600))
+	f, err := os.OpenFile(readyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	require.NoError(t, err)
+	_, err = f.Write([]byte(strconv.Itoa(os.Getpid())))
+	require.NoError(t, err)
+	require.NoError(t, f.Sync())
+	require.NoError(t, f.Close())
+
 	select {}
 }
